@@ -1,15 +1,15 @@
 {
     "name": "playground-nodeJS-server"
-    ,"version": "0.0.1"
+    ,"version": "1.0.0"
     ,"private": true
     ,"scripts": {
         "start": "node server"
     }
     ,"dependencies": {
-        "express": "*"
-        ,"socket.io": "*"
-        ,"jade": "*"
-        ,"request": "*"
-        ,"socket.io-client" : "*"
+        "express": "3.3.4"
+        ,"socket.io": "0.9.16"
+        ,"jade": "0.33.0"
+        ,"request": "2.23.0"
+        ,"socket.io-client" : "0.9.16"
     }
 }
