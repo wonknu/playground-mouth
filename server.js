@@ -5,6 +5,7 @@ var CONF = require('./config/config.js'),
     routes = require('./routes'),
 	server = require('http').createServer(app),
 	io = require('socket.io').listen(server, { log: CONF.IO_LOG, origins: CONF.IO_ORIGINS }),
+	User = require('./models/User.js'),
     util = require('./lib/adfabUtils'),
 /* APPLICATION VARIABLES */
     allClients = [];
@@ -48,14 +49,18 @@ app.post('/update', function (req, res)
         res.send(bodyRequest.apiKey);
         return;
     }
+    User.updtUsersPoints(req.body.username, req.body.points, function (err, resp)
+    {
+        io.sockets.in(bodyRequest.apiKey).emit('update', { "user" : req.body });
+        res.send(200);
+    });
+    
 });
 
 /* For now POST method is not in the MODEL part of the app logic because it use the socket and not the REST API */
 app.post('/notification', function (req, res)
 {
     var bodyRequest = req.body;
-    //console.log(bodyRequest);
-    //console.log(JSON.parse(bodyRequest));
     for (var i in bodyRequest)
 	{
 		try{
@@ -72,17 +77,39 @@ app.post('/notification', function (req, res)
         res.end('');
         return;
     }
+    
 	if( util.NotNull(bodyRequest) &&
 		util.NotNull(bodyRequest.html) &&
 		util.NotNull(bodyRequest.apiKey) &&
-		util.NotNull(bodyRequest.userId)) // If is enough to send notif
+		util.NotNull(bodyRequest.userId) &&
+		util.NotNull(allClients[bodyRequest.apiKey])) { // If is enough to send notif
+		
+		var currentClient = null, othersClient = null;
 	    for (var i=0; i < allClients[bodyRequest.apiKey].length; i++) {
 			if(allClients[bodyRequest.apiKey][i].userId == bodyRequest.userId){
-				allClients[bodyRequest.apiKey][i].emit('notification', bodyRequest);
+				currentClient = allClients[bodyRequest.apiKey][i];
+			}
+			else{
+				
 			}
 	    };
-    //allClients
-    //io.sockets.in(bodyRequest.apiKey).emit('notification', { "html" : '<div>html</div>' });
+	    
+		switch(bodyRequest.who){
+			case 'self':
+				if(currentClient !== null)
+					currentClient.emit('notification', bodyRequest);
+			break;
+			case 'others':
+                if(currentClient !== null)
+                    currentClient.broadcast.to(bodyRequest.apiKey).emit('notification', bodyRequest);
+			break;
+			case 'all':
+				io.sockets.in(bodyRequest.apiKey).emit('notification', bodyRequest);
+			break;
+			default:break;
+		}
+	}
+    
     var headers = {};
     headers["Access-Control-Allow-Origin"] = "*";
     headers["Access-Control-Allow-Methods"] = "POST, GET, PUT, DELETE, OPTIONS";
@@ -90,7 +117,6 @@ app.post('/notification', function (req, res)
     headers["Access-Control-Max-Age"] = '86400'; // 24 hours
     headers["Access-Control-Allow-Headers"] = "X-Requested-With, Access-Control-Allow-Origin, X-HTTP-Method-Override, Content-Type, Authorization, Accept";
     res.writeHead(200, headers);
-    //res.send(200);
     res.end('');
 });
 
@@ -99,8 +125,28 @@ util.log("Configure sockets.io");
 /* a user connect to our I/O server */
 io.sockets.on('connection', function (client)
 {
-	util.log("New user logged into the playground!\n"); // sortie console sur serveur
+	util.log("nouvelle utilisateur conncecté a un widget!\n"); // sortie console sur serveur
     
+    // User request a widget
+	client.on('widget', function (data) // data must contain
+	{
+        if(!util.NotNull(data.room, "")) return;
+        
+        // push user to the room Array ( and create hes room in the Array if it doesn't exist )
+        if(!util.NotNull(allClients[data.room])) allClients[data.room] = [];
+        allClients[data.room].push(client);
+        
+	    client.join(data.room); // Make the client user join the requested room
+	    client.currentRoom = data.room; // Save hes room name so he know it
+	    
+	    // Request user from the leaderboard's room
+        User.getUsers(data.room, -1, function (userData)
+        {
+            if (userData.err) throw userData.err;
+            client.emit('update', userData); // send the leaderboard to the user who just connect
+        });
+	});
+	
 	client.on('logged', function (data) // data must contain
 	{
         if(!util.NotNull(data.room, "") || !util.NotNull(data.user, "")) return;
@@ -111,6 +157,7 @@ io.sockets.on('connection', function (client)
 	    client.join(data.room); // Make the client user join the requested room
 	    client.currentRoom = data.room; // Save hes room name so he know it
         client.userId = data.user;
+	    //client.emit('notification', {test : 'test'});
 	});
 	
 	// Listen for connection close to remove the user from the room he was
