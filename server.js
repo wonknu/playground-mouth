@@ -155,4 +155,3 @@ io.sockets.on('connection', function (client)
 });
 
 util.log("server started on port :" + CONF.PORT + "\n");
-

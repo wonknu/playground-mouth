@@ -3,17 +3,18 @@
 NODE=node
 SERVER_JS_FILE=server.js
 USER=root
-OUT=/root/PROJETS/mouthnode/leaderboard/www/nodejs.log
+OUT=/root/PROJETS/playground-mouth/logs/node_out.log
+ERR=/root/PROJETS/playground-mouth/logs/node_error.log
 
 case "$1" in
 
 start)
     echo "starting node: $NODE $SERVER_JS_FILE"
-    sudo -u $USER $NODE $SERVER_JS_FILE > $OUT 2>$OUT &
+	sudo -u $USER forever -w -l forever-test1-https.log -o $OUT -e $ERR start $SERVER_JS_FILE
     ;;
 
 stop)
-    killall $NODE
+    sudo -u $USER forever stop $SERVER_JS_FILE
     ;;
 
 *)
