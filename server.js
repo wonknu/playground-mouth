@@ -5,7 +5,6 @@ var CONF = require('./config/config.js'),
     routes = require('./routes'),
 	server = require('http').createServer(app),
 	io = require('socket.io').listen(server, { log: CONF.IO_LOG, origins: CONF.IO_ORIGINS }),
-	User = require('./models/User.js'),
     util = require('./lib/adfabUtils'),
 /* APPLICATION VARIABLES */
     allClients = [];
@@ -38,24 +37,6 @@ app.get('/', routes.index);
 app.get('/maybe-baby', routes.maybe);
 /* Define router for user who request a leaderboard */
 app.get('/widget/:type/:roomID', routes.widget);
-
-/* For now POST method is not in the MODEL part of the app logic because it use the socket and not the REST API */
-app.post('/update', function (req, res)
-{
-    var bodyRequest = req.body;
-    res.header('Access-Control-Allow-Origin', '*'); // response with allowed access header
-    
-    if(!util.NotNull(bodyRequest.apiKey, "")) {
-        res.send(bodyRequest.apiKey);
-        return;
-    }
-    User.updtUsersPoints(req.body.username, req.body.points, function (err, resp)
-    {
-        io.sockets.in(bodyRequest.apiKey).emit('update', { "user" : req.body });
-        res.send(200);
-    });
-    
-});
 
 /* For now POST method is not in the MODEL part of the app logic because it use the socket and not the REST API */
 app.post('/notification', function (req, res)
@@ -140,11 +121,11 @@ io.sockets.on('connection', function (client)
 	    client.currentRoom = data.room; // Save hes room name so he know it
 	    
 	    // Request user from the leaderboard's room
-        User.getUsers(data.room, -1, function (userData)
-        {
-            if (userData.err) throw userData.err;
-            client.emit('update', userData); // send the leaderboard to the user who just connect
-        });
+        // User.getUsers(data.room, -1, function (userData)
+        // {
+            // if (userData.err) throw userData.err;
+            // client.emit('update', userData); // send the leaderboard to the user who just connect
+        // });
 	});
 	
 	client.on('logged', function (data) // data must contain
@@ -174,3 +155,4 @@ io.sockets.on('connection', function (client)
 });
 
 util.log("server started on port :" + CONF.PORT + "\n");
+
