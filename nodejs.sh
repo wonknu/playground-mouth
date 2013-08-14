@@ -10,7 +10,7 @@ case "$1" in
 
 start)
     echo "starting node: $NODE $SERVER_JS_FILE"
-	sudo -u $USER forever -w -l forever-test1-https.log -o $OUT -e $ERR start $SERVER_JS_FILE
+	sudo -u $USER forever -o $OUT -e $ERR start $SERVER_JS_FILE
     ;;
 
 stop)
