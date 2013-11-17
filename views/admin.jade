@@ -1,0 +1,11 @@
+extends layout
+
+block content
+    div.container
+        input(type="text")(value="key_first").room
+        button(type=submit).load-room load room
+
+block scripts
+    script(src='http://code.jquery.com/jquery-latest.min.js')
+    script(src='/socket.io/socket.io.js')
+    script(src='/js/admin.js')

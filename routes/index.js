@@ -53,6 +53,19 @@ exports.connection = function (req, res)
 };
 
 /**
+ * Default router 
+ * @param {Object} req, express auto send this param
+ * @param {Object} res, express auto send this param
+ */
+exports.admin = function (req, res)
+{
+    //if(req.params.roomID)
+        res.render('admin', {
+            roomID : req.params.roomID
+        });
+};
+
+/**
  * LeaderBoard router 
  * @param {Object} req, express auto send this param
  * @param {Object} res, express auto send this param

@@ -10,7 +10,8 @@ var CONF = require('./config/config.js'),
     }),
     util = require('./lib/adfabUtils'),
     /* APPLICATION VARIABLES */
-    allClients = [];
+    allClients = [],
+    admins = [];
 
 util.log("Configure Express framework\n");
 
@@ -41,6 +42,8 @@ app.get('/', routes.index);
 app.get('/maybe-baby', routes.maybe);
 /* Define router for user who request a leaderboard */
 app.get('/widget/:type/:roomID', routes.widget);
+
+app.get('/admin', routes.admin);
 
 /* For now POST method is not in the MODEL part of the app logic because it use the socket and not the REST API */
 app.post('/notification', function (req, res)
@@ -131,19 +134,49 @@ io.sockets.on('connection', function (client)
         client.join(data.room); // Make the client user join the requested room
         client.currentRoom = data.room; // Save hes room name so he know it
         client.userId = data.user;
-        //client.emit('notification', {test : 'test'});
+        sendAdminData(data.room);
+    });
+
+    client.on('watch', function (data) // data must contain
+    {
+        if (!util.NotNull(data.room, "")) return;
+        // push user to the room Array ( and create hes room in the Array if it doesn't exist )
+        if (!util.NotNull(admins[data.room])) admins[data.room] = [];
+        admins[data.room].push(client);
+
+        client.join("admin-" + data.room); // Make the client user join the requested room
+        client.currentRoom = "admin-" + data.room; // Save hes room name so he know it
+        sendAdminData(data.room);
     });
 
     // Listen for connection close to remove the user from the room he was
     client.on('disconnect', function ()
     {
-        //io.sockets.in(client.currentRoom).emit('test'); // e: to broadcast stuff when a room user has left it
-        if (util.NotNull(allClients[client.currentRoom]) && allClients[client.currentRoom].indexOf(client) >= 0)
+        if (util.NotNull(allClients[client.currentRoom]) && allClients[client.currentRoom].indexOf(client) >= 0){
             allClients[client.currentRoom] = allClients[client.currentRoom].slice( // Delete user from room visited
                 allClients[client.currentRoom].indexOf(client), 1
             );
+        	var timeToLeave = setTimeout(function ()
+        	{
+        		sendAdminData(client.currentRoom);
+        		clearTimeout(timeToLeave);
+        	}, 1);
+        }
     });
 
 });
+
+function sendAdminData (room)
+{
+    var adminRoom = io.sockets.clients(room),
+    	userInRoom = 0;
+	adminRoom.forEach(function(client)
+	{
+	    userInRoom++;
+	});
+	io.sockets.in('admin-' + room).emit('update', {
+		connected : userInRoom
+    });
+}
 
 util.log("server started on port :" + CONF.PORT + "\n");
