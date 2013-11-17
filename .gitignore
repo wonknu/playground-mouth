@@ -3,3 +3,6 @@
 # Node module
 node_modules/
 logs/
+
+#project
+.project
